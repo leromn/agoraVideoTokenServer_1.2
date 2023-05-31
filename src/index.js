@@ -1,6 +1,9 @@
 const express = require('express');
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
-require('dotenv').config();
+const APP_ID = 'e2eefdac63734cd39bec7b696add7937';
+const APP_CERTIFICATE = 'ad76d212a4634daeaa78bf52072cbb04';
+const PORT = 9090;
+let CurrentChannel = null;
 
 const app = express();
 
@@ -48,8 +51,8 @@ const generateRTCToken = (req, resp) => {
   let token;
   if (req.params.tokentype === 'userAccount') {
     token = RtcTokenBuilder.buildTokenWithAccount(
-      process.env.APP_ID,
-      process.env.APP_CERTIFICATE,
+      APP_ID,
+      APP_CERTIFICATE,
       channelName,
       uid,
       role,
@@ -57,8 +60,8 @@ const generateRTCToken = (req, resp) => {
     );
   } else if (req.params.tokentype === 'uid') {
     token = RtcTokenBuilder.buildTokenWithUid(
-      process.env.APP_ID,
-      process.env.APP_CERTIFICATE,
+      APP_ID,
+      APP_CERTIFICATE,
       channelName,
       uid,
       role,
@@ -67,15 +70,19 @@ const generateRTCToken = (req, resp) => {
   } else {
     return resp.status(500).json({ error: 'token type is invalid' });
   }
-
-  return resp.json({ rtcToken: token });
+  CurrentChannel = { cn: channelName, chtoken: token };
+  return resp.json({ chToken: token });
 };
 
 app.get('/rtc/:channel/:role/:tokentype/:uid', nocache, generateRTCToken);
-app.get('', (req, resp) => {
-  resp.json('working port 2');
+app.get('/currentChannel', (req, resp) => {
+  if (CurrentChannel !== null) {
+    return resp.json(CurrentChannel);
+  } else {
+    return resp.status(400).json({ error: 'no previous channel found' });
+  }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Listenin..g on port: ${process.env.PORT}`);
+app.listen(PORT, () => {
+  console.log(`Listenin...g on port: ${PORT}`);
 });
